@@ -1,0 +1,23 @@
+{
+  "name": "run-app",
+  "version": "1.0.0",
+  "description": "Run app with client and server",
+  "main": "Server/index.js",
+  "scripts": {
+    "start": "cd Server && npm start",
+    "dev": "cd Server && npm run dev",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd Server && npm install && cd ../client && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vitus-kim/run-backend.git"
+  },
+  "keywords": ["run", "fitness", "tracking", "node", "react"],
+  "author": "vitus-kim",
+  "license": "MIT"
+}
