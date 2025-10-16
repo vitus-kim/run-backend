@@ -119,6 +119,12 @@ const runningSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// 성능 최적화를 위한 인덱스 추가
+Running.index({ userId: 1, isActive: 1, date: -1 });
+Running.index({ userId: 1, isActive: 1, runningScore: -1 });
+Running.index({ userId: 1, isActive: 1, distance: -1 });
+Running.index({ userId: 1, isActive: 1, avgSpeed: -1 });
+
 // 인덱스 설정 (랭킹 시스템 최적화)
 runningSchema.index({ userId: 1, date: -1 });
 runningSchema.index({ userId: 1, weekStart: -1 });

@@ -1,6 +1,7 @@
 const Running = require('../models/Running');
 const EnhancedRunning = require('../models/EnhancedRunning');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const cacheHelper = require('../utils/cacheHelper');
 
 // 기존 Running 데이터를 EnhancedRunning으로 마이그레이션
 const migrateRunningData = async (req, res) => {
@@ -80,59 +81,81 @@ const migrateRunningData = async (req, res) => {
   }
 };
 
-// 사용자의 모든 런닝 데이터 조회 (기존 + 새로운)
+// 사용자의 모든 런닝 데이터 조회 (캐싱 적용 버전)
 const getAllRunnings = async (req, res) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = req.query;
 
-    console.log('=== 모든 런닝 데이터 조회 ===');
+    console.log('=== 캐싱 적용된 런닝 데이터 조회 ===');
     console.log('사용자 ID:', userId);
+    console.log('정렬:', sortBy, sortOrder);
 
-    // 기존 Running 데이터 조회
-    const existingRunnings = await Running.find({ userId, isActive: true })
-      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
-      .populate('userId', 'nickname email');
+    const startTime = Date.now();
 
-    // EnhancedRunning 데이터 조회
-    const enhancedRunnings = await EnhancedRunning.find({ userId, isActive: true })
-      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
-      .populate('userId', 'nickname email');
+    // 캐시 키 생성
+    const cacheKey = cacheHelper.getUserCacheKey(userId, 'runnings', { page, limit, sortBy, sortOrder });
+    
+    // 캐시에서 데이터 조회 시도
+    const cachedData = await cacheHelper.get(cacheKey);
+    if (cachedData) {
+      console.log('캐시에서 데이터 조회 성공');
+      const endTime = Date.now();
+      console.log(`캐시 조회 시간: ${endTime - startTime}ms`);
+      
+      return res.json(successResponse('런닝 기록을 조회했습니다.', cachedData));
+    }
 
-    console.log('기존 런닝 데이터:', existingRunnings.length);
-    console.log('새로운 런닝 데이터:', enhancedRunnings.length);
-
-    // 데이터 통합 및 정렬
-    const allRunnings = [...existingRunnings, ...enhancedRunnings]
-      .sort((a, b) => {
-        const aValue = a[sortBy];
-        const bValue = b[sortBy];
-        if (sortOrder === 'desc') {
-          return bValue > aValue ? 1 : -1;
-        } else {
-          return aValue > bValue ? 1 : -1;
+    // 캐시에 없으면 데이터베이스에서 조회
+    console.log('캐시에 데이터 없음, 데이터베이스에서 조회');
+    
+    // MongoDB 집계 파이프라인으로 최적화된 쿼리
+    const pipeline = [
+      {
+        $match: { 
+          userId: userId, 
+          isActive: true 
         }
-      });
+      },
+      {
+        $sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 }
+      },
+      {
+        $facet: {
+          data: [
+            { $skip: (page - 1) * limit },
+            { $limit: parseInt(limit) }
+          ],
+          totalCount: [
+            { $count: "count" }
+          ]
+        }
+      }
+    ];
 
-    // 페이지네이션
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedRunnings = allRunnings.slice(startIndex, endIndex);
-
-    const total = allRunnings.length;
+    const [result] = await Running.aggregate(pipeline);
+    const runnings = result.data || [];
+    const total = result.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(total / limit);
 
-    console.log('총 데이터:', total);
-    console.log('페이지네이션된 데이터:', paginatedRunnings.length);
-
-    res.json(successResponse('런닝 기록을 조회했습니다.', {
-      runnings: paginatedRunnings,
+    const responseData = {
+      runnings: runnings,
       pagination: {
         current: parseInt(page),
         pages: totalPages,
         total
       }
-    }));
+    };
+
+    // 캐시에 저장 (5분 TTL)
+    await cacheHelper.set(cacheKey, responseData, 300);
+
+    const endTime = Date.now();
+    console.log(`쿼리 실행 시간: ${endTime - startTime}ms`);
+    console.log('조회된 데이터:', runnings.length);
+    console.log('총 데이터:', total);
+
+    res.json(successResponse('런닝 기록을 조회했습니다.', responseData));
 
   } catch (error) {
     console.error('런닝 기록 조회 실패:', error);
@@ -140,27 +163,47 @@ const getAllRunnings = async (req, res) => {
   }
 };
 
-// 개인 기록 조회 (기존 + 새로운)
+// 개인 기록 조회 (최적화된 버전)
 const getPersonalRecordsCombined = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log('=== 개인 기록 조회 ===');
+    console.log('=== 최적화된 개인 기록 조회 ===');
     console.log('사용자 ID:', userId);
 
-    // Running 데이터만 사용 (그래프와 일치시키기 위해)
-    const existingRunnings = await Running.find({ userId, isActive: true });
-    
-    // EnhancedRunning 데이터는 사용하지 않음
-    const enhancedRunnings = [];
+    const startTime = Date.now();
 
-    console.log('기존 런닝 데이터:', existingRunnings.length);
-    console.log('새로운 런닝 데이터:', enhancedRunnings.length);
+    // MongoDB 집계 파이프라인으로 통계 계산
+    const pipeline = [
+      {
+        $match: { 
+          userId: userId, 
+          isActive: true 
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRuns: { $sum: 1 },
+          totalDistance: { $sum: '$distance' },
+          totalDuration: { $sum: '$duration' },
+          bestScore: { $max: '$runningScore' },
+          longestDistance: { $max: '$distance' },
+          fastestSpeed: { $max: '$avgSpeed' },
+          longestDuration: { $max: '$duration' },
+          avgScore: { $avg: '$runningScore' },
+          avgDistance: { $avg: '$distance' },
+          avgSpeed: { $avg: '$avgSpeed' }
+        }
+      }
+    ];
 
-    // Running 데이터만 사용
-    const allRunnings = existingRunnings;
+    const [stats] = await Running.aggregate(pipeline);
 
-    if (allRunnings.length === 0) {
+    const endTime = Date.now();
+    console.log(`통계 계산 시간: ${endTime - startTime}ms`);
+
+    if (!stats) {
       return res.json(successResponse('개인 기록을 조회했습니다.', {
         bestScore: 0,
         longestDistance: 0,
@@ -175,44 +218,23 @@ const getPersonalRecordsCombined = async (req, res) => {
       }));
     }
 
-    // 통계 계산
-    const totalRuns = allRunnings.length;
-    const totalDistance = allRunnings.reduce((sum, run) => sum + (run.distance || 0), 0);
-    const totalDuration = allRunnings.reduce((sum, run) => sum + (run.duration || 0), 0);
-    
-    const scores = allRunnings.map(run => run.runningScore || 0);
-    const distances = allRunnings.map(run => run.distance || 0);
-    const speeds = allRunnings.map(run => run.avgSpeed || 0);
-    const durations = allRunnings.map(run => run.duration || 0);
-
-    const bestScore = Math.max(...scores);
-    const longestDistance = Math.max(...distances);
-    const fastestSpeed = Math.max(...speeds);
-    const longestDuration = Math.max(...durations);
-
-    const avgScore = scores.reduce((sum, score) => sum + score, 0) / totalRuns;
-    const avgDistance = totalDistance / totalRuns;
-    const avgSpeed = speeds.reduce((sum, speed) => sum + speed, 0) / totalRuns;
-
     console.log('개인 기록 계산 완료:', {
-      totalRuns,
-      totalDistance,
-      bestScore,
-      longestDistance,
-      fastestSpeed
+      totalRuns: stats.totalRuns,
+      totalDistance: stats.totalDistance,
+      bestScore: stats.bestScore
     });
 
     res.json(successResponse('개인 기록을 조회했습니다.', {
-      bestScore,
-      longestDistance,
-      fastestSpeed,
-      longestDuration,
-      totalRuns,
-      totalDistance,
-      totalDuration,
-      avgScore,
-      avgDistance,
-      avgSpeed
+      bestScore: stats.bestScore || 0,
+      longestDistance: stats.longestDistance || 0,
+      fastestSpeed: stats.fastestSpeed || 0,
+      longestDuration: stats.longestDuration || 0,
+      totalRuns: stats.totalRuns || 0,
+      totalDistance: stats.totalDistance || 0,
+      totalDuration: stats.totalDuration || 0,
+      avgScore: Math.round((stats.avgScore || 0) * 100) / 100,
+      avgDistance: Math.round((stats.avgDistance || 0) * 100) / 100,
+      avgSpeed: Math.round((stats.avgSpeed || 0) * 100) / 100
     }));
 
   } catch (error) {
