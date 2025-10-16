@@ -40,21 +40,48 @@ const corsOptions = {
       'https://run-client-tau.vercel.app',
       'https://run-backend-sand.vercel.app',
       'https://run-client-kabvmzblj-virtuosokgh-2145s-projects.vercel.app',
+      // Vercel Preview URLs 패턴 추가
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/.*-.*-.*\.vercel\.app$/,
       process.env.CLIENT_URL || 'https://your-frontend-domain.com'
     ];
     
     // origin이 없는 경우 (모바일 앱 등) 허용
     if (!origin) return callback(null, true);
     
+    // 문자열 매칭
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('CORS 정책에 의해 차단되었습니다'));
+      // 정규식 패턴 매칭 (Vercel URLs)
+      const isAllowed = allowedOrigins.some(pattern => {
+        if (pattern instanceof RegExp) {
+          return pattern.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log('CORS 차단된 Origin:', origin);
+        callback(new Error('CORS 정책에 의해 차단되었습니다'));
+      }
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200
 };
 
 // Middleware
