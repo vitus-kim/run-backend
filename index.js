@@ -38,6 +38,8 @@ const corsOptions = {
       'http://localhost:5176',
       // 프로덕션 환경에서는 실제 도메인 추가
       'https://run-client-tau.vercel.app',
+      'https://run-backend-sand.vercel.app',
+      'https://run-client-kabvmzblj-virtuosokgh-2145s-projects.vercel.app',
       process.env.CLIENT_URL || 'https://your-frontend-domain.com'
     ];
     
