@@ -40,6 +40,7 @@ const corsOptions = {
       'https://run-client-tau.vercel.app',
       'https://run-backend-sand.vercel.app',
       'https://run-client-kabvmzblj-virtuosokgh-2145s-projects.vercel.app',
+      'https://run-backend-3xxm0fyv6-virtuosokgh-2145s-projects.vercel.app',
       // Vercel Preview URLs 패턴 추가
       /^https:\/\/.*\.vercel\.app$/,
       /^https:\/\/.*-.*-.*\.vercel\.app$/,
