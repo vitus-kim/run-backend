@@ -1,7 +1,7 @@
 const Running = require('../models/Running');
 const EnhancedRunning = require('../models/EnhancedRunning');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
-const cacheHelper = require('../utils/cacheHelper');
+// const cacheHelper = require('../utils/cacheHelper'); // 임시 비활성화
 
 // 기존 Running 데이터를 EnhancedRunning으로 마이그레이션
 const migrateRunningData = async (req, res) => {
@@ -93,21 +93,8 @@ const getAllRunnings = async (req, res) => {
 
     const startTime = Date.now();
 
-    // 캐시 키 생성
-    const cacheKey = cacheHelper.getUserCacheKey(userId, 'runnings', { page, limit, sortBy, sortOrder });
-    
-    // 캐시에서 데이터 조회 시도
-    const cachedData = await cacheHelper.get(cacheKey);
-    if (cachedData) {
-      console.log('캐시에서 데이터 조회 성공');
-      const endTime = Date.now();
-      console.log(`캐시 조회 시간: ${endTime - startTime}ms`);
-      
-      return res.json(successResponse('런닝 기록을 조회했습니다.', cachedData));
-    }
-
-    // 캐시에 없으면 데이터베이스에서 조회
-    console.log('캐시에 데이터 없음, 데이터베이스에서 조회');
+    // 캐시 비활성화 (Redis 오류로 인해)
+    console.log('데이터베이스에서 직접 조회');
     
     // MongoDB 집계 파이프라인으로 최적화된 쿼리
     const pipeline = [
@@ -147,8 +134,8 @@ const getAllRunnings = async (req, res) => {
       }
     };
 
-    // 캐시에 저장 (5분 TTL)
-    await cacheHelper.set(cacheKey, responseData, 300);
+    // 캐시 비활성화
+    // await cacheHelper.set(cacheKey, responseData, 300);
 
     const endTime = Date.now();
     console.log(`쿼리 실행 시간: ${endTime - startTime}ms`);
