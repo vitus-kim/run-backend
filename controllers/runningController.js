@@ -1,5 +1,5 @@
 const Running = require('../models/Running');
-const { calculateUserScore } = require('../utils/scoreCalculator');
+// const { calculateUserScore } = require('../utils/scoreCalculator'); // 임시 비활성화
 const { sendSuccess, sendError, sendValidationError } = require('../utils/responseHelper');
 const { validateRequiredFields, validateNumber, validateDate, handleMongooseError } = require('../utils/validationHelper');
 const { calculateWeekStart } = require('../utils/dateHelper');
@@ -57,18 +57,8 @@ const createRunning = async (req, res) => {
     
     const savedRunning = await newRunning.save();
     
-    // 점수 자동 계산 (동기로 처리하여 확실히 업데이트)
-    try {
-      console.log('=== 점수 계산 시작 (runningController) ===');
-      console.log('사용자 ID:', req.user._id);
-      console.log('런닝 날짜:', runningDate);
-      
-      await calculateUserScore(req.user._id, runningDate);
-      console.log('점수 계산 완료:', req.user._id);
-    } catch (error) {
-      console.error('점수 계산 오류:', error);
-      console.error('에러 스택:', error.stack);
-    }
+    // 점수 계산 비활성화 (모듈 오류로 인해)
+    console.log('점수 계산 비활성화됨');
     
     // 사용자 정보와 함께 반환
     const populatedRunning = await Running.findById(savedRunning._id)
