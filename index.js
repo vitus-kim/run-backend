@@ -37,6 +37,7 @@ const corsOptions = {
       'http://localhost:5175', 
       'http://localhost:5176',
       // 프로덕션 환경에서는 실제 도메인 추가
+      'https://run-client-tau.vercel.app',
       process.env.CLIENT_URL || 'https://your-frontend-domain.com'
     ];
     
