@@ -1,55 +1,96 @@
-# Run - 런닝 기록 관리 앱
+# Node.js Express MongoDB Server
 
-## 📁 프로젝트 구조
+A basic Node.js server setup with Express.js and MongoDB using Mongoose.
 
-```
-run/
-├── client/          # React 프론트엔드
-├── Server/          # Node.js 백엔드
-└── README.md
-```
+## Prerequisites
 
-## 🚀 기술 스택
+- Node.js (v14 or higher)
+- MongoDB (local installation or MongoDB Atlas)
+- npm or yarn
 
-### Frontend (Client)
-- React 18
-- Vite
-- Tailwind CSS
-- Axios
+## Installation
 
-### Backend (Server)
-- Node.js
-- Express.js
-- MongoDB Atlas
-- Mongoose
-- JWT
-
-## 🛠️ 개발 환경 설정
-
-### 1. 클라이언트 실행
+1. Install dependencies:
 ```bash
-cd client
 npm install
+```
+
+2. Create a `.env` file in the root directory with the following variables:
+```env
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/myapp
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRE=7d
+CORS_ORIGIN=http://localhost:3000
+```
+
+## Running the Server
+
+### Development Mode (with auto-restart)
+```bash
 npm run dev
 ```
 
-### 2. 서버 실행
+### Production Mode
 ```bash
-cd Server
-npm install
-npm run dev
+npm start
 ```
 
-## 🌐 배포
+The server will start on `http://localhost:5000` (or the port specified in your .env file).
 
-- **Frontend**: Vercel/Netlify
-- **Backend**: Heroku
-- **Database**: MongoDB Atlas
+## API Endpoints
 
-## 📱 주요 기능
+### Basic Routes
+- `GET /` - Server status
+- `GET /api/health` - Health check
 
-- 사용자 인증 (회원가입/로그인)
-- 런닝 기록 입력
-- 성과 분석 및 그래프
-- 랭킹 시스템
-- 개인 기록 관리
+### User Routes
+- `GET /api/users` - Get all users
+- `GET /api/users/:id` - Get user by ID
+- `POST /api/users` - Create new user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+
+### Authentication Routes
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/profile` - Get user profile
+
+## Project Structure
+
+```
+Server/
+├── config/
+│   └── database.js          # Database connection configuration
+├── models/
+│   └── User.js              # User model schema
+├── routes/
+│   ├── index.js             # Main router
+│   ├── userRoutes.js        # User-related routes
+│   └── authRoutes.js        # Authentication routes
+├── index.js                 # Main server file
+├── package.json             # Dependencies and scripts
+└── README.md               # This file
+```
+
+## Database Setup
+
+Make sure MongoDB is running on your system:
+- Local MongoDB: `mongodb://localhost:27017/myapp`
+- MongoDB Atlas: Update the `MONGODB_URI` in your `.env` file
+
+## Development
+
+The server uses nodemon for development, which automatically restarts the server when files change.
+
+## Next Steps
+
+1. Implement actual database operations in the route handlers
+2. Add authentication middleware
+3. Add input validation
+4. Add error handling
+5. Add logging
+6. Add tests
+
