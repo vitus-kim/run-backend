@@ -39,3 +39,4 @@ const RankingList = ({ rankings, activeTab, currentPage, rankingsLoading }) => {
 export default RankingList;
 
 
+

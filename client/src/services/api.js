@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // API 기본 설정
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://run-backend-8a8c1e4abd74.herokuapp.com/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -37,7 +37,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://run-backend-8a8c1e4abd74.herokuapp.com/api'}/auth/refresh`, {
+          const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/refresh`, {
             refreshToken
           });
 

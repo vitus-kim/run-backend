@@ -81,3 +81,4 @@ const RankingCard = ({ score, index, activeTab, currentPage }) => {
 export default RankingCard;
 
 
+
